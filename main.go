@@ -46,6 +46,19 @@ type User struct {
 }
 type Users []User
 
+type UserStatusFlag int
+
+const (
+	UserStatusEmpty UserStatusFlag = iota
+	UserStatusFound
+	UserStatusUnknown
+)
+
+type UserStatus struct {
+	status UserStatusFlag
+	name   string
+}
+
 func getDefinedGitUsers(path string) (result *Users, err error) {
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -246,33 +259,45 @@ func main() {
 		return fmt.Sprintf(`ssh -i %s`, user.PrivKey)
 	}
 
+	queryUserStatus := func() UserStatus {
+		err := assertGitDir()
+		if err != nil {
+			panic(err)
+		}
+
+		if cfg == nil {
+			return UserStatus{status: UserStatusEmpty}
+		}
+
+		// check if we know the current user
+		for _, defUser := range *definedUsers {
+			if cfg.Name == defUser.Name &&
+				cfg.Email == defUser.Email &&
+				cfg.SshCommand == expectedSshCommand(&defUser) {
+				return UserStatus{status: UserStatusFound, name: defUser.Short}
+			}
+		}
+
+		// so we don't know the current user
+		return UserStatus{status: UserStatusUnknown, name: cfg.Short}
+	}
+
 	// @TODO CLI autocompl
 	{ // check or set user
 		args := os.Args[1:]
 
 		if len(args) == 0 { // check
-			err := assertGitDir()
-			if err != nil {
-				panic(err)
-			}
-
-			if cfg == nil {
+			userStatus := queryUserStatus()
+			switch userStatus.status {
+			case UserStatusEmpty:
 				fmt.Printf("%%{$fg[red]%%}%s", "NONE")
 				os.Exit(0)
+			case UserStatusFound:
+				fmt.Print(userStatus.name)
+				os.Exit(0)
+			case UserStatusUnknown:
+				fmt.Printf("%%{$fg[red]%%}%s", userStatus.name)
 			}
-
-			// check if we know the current user
-			for _, defUser := range *definedUsers {
-				if cfg.Name == defUser.Name &&
-					cfg.Email == defUser.Email &&
-					cfg.SshCommand == expectedSshCommand(&defUser) {
-					fmt.Print(defUser.Short)
-					os.Exit(0)
-				}
-			}
-
-			// so we don't know the current user
-			fmt.Printf("%%{$fg[red]%%}%s", cfg.Short)
 			os.Exit(0)
 		} else if len(args) == 1 &&
 			!strings.HasPrefix(args[0], "-") {
