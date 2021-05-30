@@ -5,7 +5,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -15,6 +14,7 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -202,7 +202,7 @@ func main() {
 
 		assertGitDir = func() error {
 			if gitDir == "" {
-				log.Fatalf("could not find .gitdir in %s", originalWd)
+				return fmt.Errorf("could not find .gitdir in %s", originalWd)
 			}
 			return nil
 		}
@@ -320,6 +320,57 @@ func main() {
 			for _, user := range *definedUsers {
 				fmt.Printf("%v\n", user)
 			}
+		} else if len(args) == 1 && args[0] == "-p" { // prompt
+			outCloseParen := "%{$fg[yellow]%})%{${reset_color}%}"
+			userStatus := queryUserStatus()
+			if userStatus.status == UserStatusNoGitDir {
+				os.Exit(0)
+			}
+			fmt.Print("%{$fg[yellow]%}(%{${reset_color}%}")
+			switch userStatus.status {
+			case UserStatusEmpty:
+				fmt.Printf("%%{$fg[red]%%}%s", "NONE")
+			case UserStatusFound:
+				fmt.Print(userStatus.name)
+			case UserStatusUnknown:
+				fmt.Printf("%%{$fg[red]%%}%s", userStatus.name)
+			}
+
+			fmt.Print("%{$fg[yellow]%}/%{${reset_color}%}")
+			gitStatus := fetchGitStatus(":")
+			if gitStatus == nil {
+				fmt.Print("%{$fg[red]%}detached HEAD" + outCloseParen)
+				os.Exit(0)
+			}
+			fmt.Print("%{$fg[magenta]%}" + gitStatus.branch + "%{${reset_color}%}")
+
+			{ // post
+				var post string
+				{ // collect post
+					if gitStatus.ahead > 0 {
+						post += "↑" + strconv.Itoa(gitStatus.ahead)
+					}
+					if gitStatus.behind > 0 {
+						post += "↓" + strconv.Itoa(gitStatus.behind)
+					}
+					if gitStatus.stashes > 0 {
+						post += "≡" + strconv.Itoa(gitStatus.stashes)
+					}
+					if gitStatus.changed > 0 {
+						post += "☇" + strconv.Itoa(gitStatus.changed)
+					}
+					if gitStatus.staged > 0 {
+						post += "★"
+					}
+				}
+
+				if len(post) > 0 {
+					fmt.Print(" " + post)
+				}
+			}
+
+			fmt.Print(outCloseParen)
+			os.Exit(0)
 		} else if len(args) >= 3 && args[1] == "clone" { // <user> clone ...
 			user := args[0]
 			src := args[2]
