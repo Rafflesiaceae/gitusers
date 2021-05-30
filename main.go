@@ -153,34 +153,10 @@ func getGitConfig(fpath string) (result *GitConfig, err error) {
 	return result, nil
 }
 
-func runCmd(cmdArg string, args []string, env []string) (retCode int, stdout string, stderr string) {
-	cmd := exec.Command(cmdArg, args...)
-	if len(env) != 0 {
-		cmd.Env = os.Environ()
-		for k, v := range env {
-			cmd.Env[k] = v
-		}
-	}
-
-	var stdoutBuf, stderrBuf bytes.Buffer
-	cmd.Stdout = &stdoutBuf
-	cmd.Stderr = &stderrBuf
-
-	err := cmd.Run()
-	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			return exitError.ExitCode(), string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
-		}
-	}
-
-	outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
-	return 0, outStr, errStr
-
-}
-
 func main() {
 	var definedUsers *Users
 	var homeDir string
+
 	{ // load definedUsers
 		user, err := user.Current()
 		if err != nil {
@@ -313,17 +289,17 @@ func main() {
 					defUser.Name == setUser ||
 					defUser.Email == setUser {
 
-					ret, _, serr := runCmd("git", []string{"config", "user.name", defUser.Name}, []string{})
+					ret, _, serr := runEnv("git", []string{"config", "user.name", defUser.Name}, []string{})
 					if ret != 0 {
 						panic(serr)
 					}
 
-					ret, _, serr = runCmd("git", []string{"config", "user.email", defUser.Email}, []string{})
+					ret, _, serr = runEnv("git", []string{"config", "user.email", defUser.Email}, []string{})
 					if ret != 0 {
 						panic(serr)
 					}
 
-					ret, _, serr = runCmd("git", []string{"config", "core.sshCommand", expectedSshCommand(&defUser)}, []string{})
+					ret, _, serr = runEnv("git", []string{"config", "core.sshCommand", expectedSshCommand(&defUser)}, []string{})
 					if ret != 0 {
 						panic(serr)
 					}
@@ -357,7 +333,7 @@ func main() {
 						log.Fatalf(SSHWrapperInstruction)
 					}
 
-					ret, _, serr := runCmd("git", append([]string{"clone", src}, restargs...), []string{fmt.Sprintf("GIT_SSH=%s", "ssh-i-from-env"), fmt.Sprintf("SSH_IDENTITY_FILE=%s", defUser.PrivKey)})
+					ret, _, serr := runEnv("git", append([]string{"clone", src}, restargs...), []string{fmt.Sprintf("GIT_SSH=%s", "ssh-i-from-env"), fmt.Sprintf("SSH_IDENTITY_FILE=%s", defUser.PrivKey)})
 					if ret != 0 {
 						panic(serr)
 					}
