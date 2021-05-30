@@ -52,6 +52,7 @@ const (
 	UserStatusEmpty UserStatusFlag = iota
 	UserStatusFound
 	UserStatusUnknown
+	UserStatusNoGitDir
 )
 
 type UserStatus struct {
@@ -238,7 +239,7 @@ func main() {
 	queryUserStatus := func() UserStatus {
 		err := assertGitDir()
 		if err != nil {
-			panic(err)
+			return UserStatus{status: UserStatusNoGitDir}
 		}
 
 		if cfg == nil {
