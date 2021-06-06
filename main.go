@@ -195,6 +195,22 @@ func main() {
 			for _, f := range files {
 				if f.Name() == ".git" {
 					gitDir = path.Join(wd, f.Name())
+
+					// check if file is dir
+					if fi, err := os.Stat(gitDir); err != nil {
+						panic(err)
+					} else if !fi.IsDir() { // isFile
+						// assume its a submodule and follow the contents written therein
+						gitDirLinkRaw, err := ioutil.ReadFile(gitDir)
+						if err != nil {
+							panic(err)
+						}
+
+						gitDirLink := strings.TrimLeft(strings.TrimSpace(string(gitDirLinkRaw)), "gitdir: ")
+						gitDirParent := filepath.Dir(gitDir)
+						gitDir = filepath.Clean( path.Join(gitDirParent, string(gitDirLink)) )
+					}
+
 					break walkUpwards
 				}
 			}
