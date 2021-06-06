@@ -42,12 +42,11 @@ func fetchGitStatus(prehash string) *GitStatus {
 	var branch string
 	{ // get branch
 		retCode, branchRaw, _ := run("git", "symbolic-ref", "HEAD")
-		if retCode != 0 {
-			return nil
+		if retCode == 0 {
+			branch = branchRaw[11:]
+			branch = strings.TrimSpace(branch)
 		}
 
-		branch = branchRaw[11:]
-		branch = strings.TrimSpace(branch)
 	}
 
 	var changedFiles []byte
