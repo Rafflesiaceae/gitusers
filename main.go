@@ -336,6 +336,16 @@ func main() {
 			for _, user := range *definedUsers {
 				fmt.Printf("%v\n", user)
 			}
+		} else if len(args) == 1 && args[0] == "-g" { // get
+			userStatus := queryUserStatus()
+			switch userStatus.status {
+			case UserStatusFound:
+				fmt.Println(userStatus.name)
+				os.Exit(0)
+			default:
+				os.Exit(1)
+			}
+			os.Exit(0)
 		} else if len(args) == 1 && args[0] == "-p" { // prompt
 			outCloseParen := "%{$fg[yellow]%})%{${reset_color}%}"
 			userStatus := queryUserStatus()
