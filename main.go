@@ -208,7 +208,7 @@ func main() {
 
 						gitDirLink := strings.TrimLeft(strings.TrimSpace(string(gitDirLinkRaw)), "gitdir: ")
 						gitDirParent := filepath.Dir(gitDir)
-						gitDir = filepath.Clean( path.Join(gitDirParent, string(gitDirLink)) )
+						gitDir = filepath.Clean(path.Join(gitDirParent, string(gitDirLink)))
 					}
 
 					break walkUpwards
