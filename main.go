@@ -369,6 +369,9 @@ func main() {
 				os.Exit(0)
 			}
 			fmt.Print("%{$fg[magenta]%}" + gitStatus.branch + "%{${reset_color}%}")
+			if gitStatus.depth > 1 {
+				fmt.Print("%{$fg[yellow]%}" + DigitsToSuperscript(strconv.Itoa(gitStatus.depth)) + "%{${reset_color}%}")
+			}
 
 			{ // post
 				var post string

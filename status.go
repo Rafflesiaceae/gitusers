@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -17,6 +19,8 @@ type GitStatus struct {
 	untracked int
 	// number of stashes created today
 	stashes int
+	// how many submodules deep we are
+	depth int
 }
 
 func queryGitStashCountToday() (result int) {
@@ -131,14 +135,69 @@ func fetchGitStatus(prehash string) *GitStatus {
 		}
 	}
 
+	depth := 0
+	determineDepth := func() {
+		currentPath, err := os.Getwd()
+		if err != nil {
+			return
+		}
+
+		currentPath = filepath.Join(currentPath, "doesnt_matter")
+
+		gitdirSet := map[string]bool{}
+		gitdir := ""
+		for true {
+			// we reached root ?
+			currentPath = filepath.Dir(currentPath)
+			if currentPath == "/" {
+				break
+			}
+
+			// "realpath" $currentPath/.git
+			gitdir, err = filepath.EvalSymlinks(filepath.Join(currentPath, ".git"))
+			if err != nil {
+				continue
+			}
+			gitdir, err = filepath.Abs(gitdir)
+			if err != nil {
+				continue
+			}
+
+			// isdir? isfile?
+			if fi, err := os.Stat(gitdir); err != nil {
+				continue
+			} else if fi.IsDir() {
+				gitdirSet[gitdir] = true
+			} else {
+				bytes, err := ioutil.ReadFile(gitdir)
+				if err != nil {
+					continue
+				}
+				contents := string(bytes)
+
+				if strings.HasPrefix((contents), "gitdir: ") {
+					gitdirSet[filepath.Clean(filepath.Join(currentPath, contents[8:]))] = true
+				} else {
+					continue
+				}
+			}
+		}
+
+		for _, _ = range gitdirSet {
+			depth++
+		}
+	}
+	determineDepth()
+
 	return &GitStatus{
 		ahead:     ahead,
 		behind:    behind,
 		branch:    branch,
 		changed:   changed,
 		conflicts: conflicts,
+		depth:     depth,
 		staged:    nbStaged,
-		untracked: nbUntracked,
 		stashes:   queryGitStashCountToday(),
+		untracked: nbUntracked,
 	}
 }
