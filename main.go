@@ -85,7 +85,7 @@ func getGitConfig(fpath string) (result *GitConfig, err error) {
 	splitEquals := func(line string) (lhs string, rhs string, err error) {
 		words := strings.Split(line, "=")
 		if len(words) != 2 {
-			return "", "", fmt.Errorf("failed to split %s into 2 words through '='", line)
+			return "", "", fmt.Errorf("failed to split '%s' into 2 words through '='", line)
 		}
 
 		lhs = strings.TrimSpace(words[0])
@@ -101,6 +101,11 @@ func getGitConfig(fpath string) (result *GitConfig, err error) {
 		scanner := bufio.NewScanner(strings.NewReader(string(rawGitConfig)))
 		for scanner.Scan() {
 			text := scanner.Text()
+			stext := strings.TrimSpace(text)
+			if strings.HasPrefix(stext, ";") { // skip commments
+				continue
+			}
+
 			if strings.Contains(text, `sshCommand =`) {
 				_, rhs, err := splitEquals(text)
 				if err != nil {
