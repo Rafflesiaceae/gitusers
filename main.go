@@ -159,6 +159,11 @@ func getGitConfig(fpath string) (result *GitConfig, err error) {
 	return result, nil
 }
 
+func exitError() {
+	fmt.Printf("%%{$fg[red]%%}%s%%{${reset_color}%%}", "!")
+	os.Exit(1)
+}
+
 func main() {
 	var definedUsers *Users
 	var homeDir string
@@ -235,7 +240,7 @@ func main() {
 		// try local first
 		cfg, err = getGitConfig(path.Join(gitDir, "config"))
 		if err != nil {
-			panic(err)
+			exitError()
 		}
 
 		if cfg != nil {
