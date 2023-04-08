@@ -372,7 +372,7 @@ func main() {
 				fmt.Printf("%%{$fg[red]%%}%s", userStatus.name)
 			}
 
-			fmt.Print("%{$fg[yellow]%}/%{${reset_color}%}")
+			fmt.Print("%{$fg[yellow]%};%{${reset_color}%}")
 			gitStatus := fetchGitStatus(":")
 			if gitStatus == nil {
 				fmt.Print("%{$fg[red]%}detached HEAD" + outCloseParen)
