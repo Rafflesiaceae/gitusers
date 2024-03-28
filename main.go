@@ -259,7 +259,11 @@ func main() {
 	}
 
 	expectedSshCommand := func(user *User) string {
-		return fmt.Sprintf(`ssh -i %s`, user.PrivKey)
+		if user.PrivKey != "" {
+			return fmt.Sprintf(`ssh -i %s`, user.PrivKey)
+		} else {
+			return fmt.Sprintf(`ssh`)
+		}
 	}
 
 	queryUserStatus := func() UserStatus {
@@ -424,7 +428,12 @@ func main() {
 						log.Fatalf(SSHWrapperInstruction)
 					}
 
-					ret, _, serr := runEnv("git", append([]string{"clone", src}, restargs...), []string{fmt.Sprintf("GIT_SSH=%s", "ssh-i-from-env"), fmt.Sprintf("SSH_IDENTITY_FILE=%s", defUser.PrivKey)})
+					cloneArgs := []string{fmt.Sprintf("GIT_SSH=%s", "ssh-i-from-env")}
+					if defUser.PrivKey != "" {
+						cloneArgs = append(cloneArgs, fmt.Sprintf("SSH_IDENTITY_FILE=%s", defUser.PrivKey))
+					}
+
+					ret, _, serr := runEnv("git", append([]string{"clone", src}, restargs...), cloneArgs)
 					if ret != 0 {
 						panic(serr)
 					}
