@@ -59,7 +59,11 @@ type UserStatus struct {
 	name   string
 }
 
+var gitusersCfgPath string
+
 func getDefinedGitUsers(path string) (result *Users, err error) {
+	gitusersCfgPath = path
+
 	contents, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -334,6 +338,19 @@ func main() {
 			for _, user := range *definedUsers {
 				fmt.Printf("%v\n", user)
 			}
+		} else if len(args) == 1 && args[0] == "-e" { // edit
+			editor := os.Getenv("EDITOR")
+			if editor == "" { // default
+				editor = "vi"
+			}
+
+			cmd := exec.Command(editor, gitusersCfgPath)
+
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+
+			err := cmd.Run()
+			check(err)
 		} else if len(args) == 1 && args[0] == "-g" { // get
 			userStatus := queryUserStatus()
 			switch userStatus.status {
