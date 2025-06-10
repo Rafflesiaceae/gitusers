@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -61,7 +60,7 @@ type UserStatus struct {
 }
 
 func getDefinedGitUsers(path string) (result *Users, err error) {
-	contents, err := ioutil.ReadFile(path)
+	contents, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +76,7 @@ func getDefinedGitUsers(path string) (result *Users, err error) {
 // try to load git user from given path
 func getGitConfig(fpath string) (result *GitConfig, err error) {
 	result = &GitConfig{}
-	rawGitConfig, err := ioutil.ReadFile(fpath)
+	rawGitConfig, err := os.ReadFile(fpath)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +196,7 @@ func main() {
 		for ; prepath != wd; wd = filepath.Dir(wd) {
 			prepath = wd
 
-			files, err := ioutil.ReadDir(wd)
+			files, err := os.ReadDir(wd)
 			if err != nil {
 				panic(err)
 			}
@@ -211,10 +210,10 @@ func main() {
 						panic(err)
 					} else if !fi.IsDir() { // isFile
 						// assume its a submodule and follow the contents written therein
-						gitDirLinkRaw, err := ioutil.ReadFile(gitDir)
 						if err != nil {
 							panic(err)
 						}
+						gitDirLinkRaw, err := os.ReadFile(gitDir)
 
 						gitDirLink := strings.TrimLeft(strings.TrimSpace(string(gitDirLinkRaw)), "gitdir: ")
 						gitDirParent := filepath.Dir(gitDir)

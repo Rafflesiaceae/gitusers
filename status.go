@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -169,7 +168,7 @@ func fetchGitStatus(prehash string) *GitStatus {
 			} else if fi.IsDir() {
 				gitdirSet[gitdir] = true
 			} else {
-				bytes, err := ioutil.ReadFile(gitdir)
+				bytes, err := os.ReadFile(gitdir)
 				if err != nil {
 					continue
 				}
