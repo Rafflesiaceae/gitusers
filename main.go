@@ -331,6 +331,17 @@ func main() {
 
 			// we could not match setUser with anything
 			log.Fatalf("could not find a defined user matching %s, defined users: %v", setUser, definedUsers)
+		} else if len(args) == 1 && args[0] == "-h" { // help
+			println(`Usage:
+  gitusers <user-short>
+
+Options:
+  -h      Show this help
+  -e      Open 'gitusers.json' config in your $EDITOR
+  -l      List all known Users (w. user-short)
+  -g      Return current user
+  -p      Print the zsh RPROMPT`)
+			os.Exit(0)
 		} else if len(args) == 1 && args[0] == "-l" { // list
 			err := assertGitDir()
 			check(err)
