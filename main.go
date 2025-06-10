@@ -169,24 +169,18 @@ func main() {
 
 	{ // load definedUsers
 		user, err := user.Current()
-		if err != nil {
-			panic(err)
-		}
+		check(err)
 		homeDir = user.HomeDir
 
 		definedUsers, err = getDefinedGitUsers(path.Join(homeDir, ".config", "gitusers.json"))
-		if err != nil {
-			panic(err)
-		}
+		check(err)
 	}
 
 	var assertGitDir func() error
 	var gitDir string
 	{ // walk upwards finding .git dir
 		wd, err := os.Getwd()
-		if err != nil {
-			panic(err)
-		}
+		check(err)
 
 		originalWd := wd
 
@@ -197,23 +191,20 @@ func main() {
 			prepath = wd
 
 			files, err := os.ReadDir(wd)
-			if err != nil {
-				panic(err)
-			}
+			check(err)
 
 			for _, f := range files {
 				if f.Name() == ".git" {
 					gitDir = path.Join(wd, f.Name())
 
 					// check if file is dir
-					if fi, err := os.Stat(gitDir); err != nil {
-						panic(err)
-					} else if !fi.IsDir() { // isFile
+					fi, err := os.Stat(gitDir)
+					check(err)
+
+					if !fi.IsDir() { // isFile
 						// assume its a submodule and follow the contents written therein
-						if err != nil {
-							panic(err)
-						}
 						gitDirLinkRaw, err := os.ReadFile(gitDir)
+						check(err)
 
 						gitDirLink := strings.TrimLeft(strings.TrimSpace(string(gitDirLinkRaw)), "gitdir: ")
 						gitDirParent := filepath.Dir(gitDir)
@@ -247,9 +238,7 @@ func main() {
 		} else { // couldn't find local
 			// @TODO support other possible gitconfig paths
 			cfg, err = getGitConfig(path.Join(homeDir, ".gitconfig"))
-			if err != nil {
-				panic(err)
-			}
+			check(err)
 
 			if cfg != nil {
 				cfg.Source = "GLOBAL"
@@ -309,9 +298,7 @@ func main() {
 			!strings.HasPrefix(args[0], "-") {
 
 			err := assertGitDir()
-			if err != nil {
-				panic(err)
-			}
+			check(err)
 
 			setUser := args[0]
 			for _, defUser := range *definedUsers { // set
@@ -342,9 +329,7 @@ func main() {
 			log.Fatalf("could not find a defined user matching %s, defined users: %v", setUser, definedUsers)
 		} else if len(args) == 1 && args[0] == "-l" { // list
 			err := assertGitDir()
-			if err != nil {
-				panic(err)
-			}
+			check(err)
 
 			for _, user := range *definedUsers {
 				fmt.Printf("%v\n", user)
