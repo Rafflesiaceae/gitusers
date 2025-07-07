@@ -86,7 +86,7 @@ func getGitConfig(fpath string) (result *GitConfig, err error) {
 	}
 
 	splitEquals := func(line string) (lhs string, rhs string, err error) {
-		words := strings.Split(line, "=")
+		words := strings.SplitN(line, "=", 2)
 		if len(words) != 2 {
 			return "", "", fmt.Errorf("failed to split '%s' into 2 words through '='", line)
 		}
@@ -252,7 +252,7 @@ func main() {
 
 	expectedSshCommand := func(user *User) string {
 		if user.PrivKey != "" {
-			return fmt.Sprintf(`ssh -i %s`, user.PrivKey)
+			return fmt.Sprintf(`ssh -i %s -o IdentitiesOnly=yes`, user.PrivKey)
 		} else {
 			return fmt.Sprintf(`ssh`)
 		}
