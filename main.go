@@ -13,6 +13,7 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -61,7 +62,8 @@ type UserStatus struct {
 
 var gitusersCfgPath string
 
-func getDefinedGitUsers(path string) (result *Users, err error) {
+func getDefinedGitUsers(path string) (resultPtr *Users, err error) {
+	var result Users
 	gitusersCfgPath = path
 
 	contents, err := os.ReadFile(path)
@@ -74,7 +76,11 @@ func getDefinedGitUsers(path string) (result *Users, err error) {
 		return nil, err
 	}
 
-	return result, nil
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Short < result[j].Short
+	})
+
+	return &result, nil
 }
 
 // try to load git user from given path
