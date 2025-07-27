@@ -58,6 +58,7 @@ const (
 type UserStatus struct {
 	status UserStatusFlag
 	name   string
+	short  string
 }
 
 var gitusersCfgPath string
@@ -279,19 +280,31 @@ func main() {
 			if cfg.Name == defUser.Name &&
 				cfg.Email == defUser.Email &&
 				cfg.SshCommand == expectedSshCommand(&defUser) {
-				return UserStatus{status: UserStatusFound, name: defUser.Short}
+				return UserStatus{status: UserStatusFound, name: defUser.Short, short: defUser.Short}
 			}
 		}
 
 		// so we don't know the current user
-		return UserStatus{status: UserStatusUnknown, name: cfg.Short}
+		return UserStatus{status: UserStatusUnknown, name: cfg.Short, short: cfg.Short}
 	}
 
 	// @TODO CLI autocompl
 	{ // check or set user
 		args := os.Args[1:]
 
-		if len(args) == 0 { // check
+		if len(args) == 0 { // summary
+			userStatus := queryUserStatus()
+
+			listDefinedUserShorts := ""
+			for _, u := range *definedUsers {
+				short := u.Short
+				if (userStatus.status == UserStatusFound) && (u.Short == userStatus.short) {
+					short = "→ " + short
+				}
+				listDefinedUserShorts += fmt.Sprintf("%14s (%s)\n", short, u.Name)
+			}
+			fmt.Printf("List of available Users:\n%s", listDefinedUserShorts)
+		} else if len(args) == 1 && args[0] == "-c" { // check
 			userStatus := queryUserStatus()
 			switch userStatus.status {
 			case UserStatusEmpty:
@@ -336,13 +349,18 @@ func main() {
 			}
 
 			// we could not match setUser with anything
-			log.Fatalf("could not find a defined user matching %s, defined users: %v", setUser, definedUsers)
+			listDefinedUsers := ""
+			for _, u := range *definedUsers {
+				listDefinedUsers += fmt.Sprintf("%v\n", u)
+			}
+			log.Fatalf("could not find a defined user matching '%s', defined users:\n\n%s", setUser, listDefinedUsers)
 		} else if len(args) == 1 && args[0] == "-h" { // help
 			println(`Usage:
   gitusers <user-short>
 
 Options:
   -h      Show this help
+  -c      Check current set user
   -e      Open 'gitusers.json' config in your $EDITOR
   -l      List all known Users (w. user-short)
   -g      Return current user
