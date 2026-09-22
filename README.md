@@ -35,5 +35,10 @@ won't follow local naming schemes
 thus the current way is to set the `core.sshCommand` via git config and
 override the ssh command to include the specific privkey see <https://superuser.com/a/912281>, e.g.
 ```
-git config core.sshCommand "ssh -i ~/.ssh/id_rsa_example -F /dev/null"
+git config core.sshCommand 'ssh -i ~/.ssh/id_rsa_example -o IdentitiesOnly=yes -o ControlPath="$HOME/.ssh/cm/example-%C"'
 ```
+
+The user short is included in the control socket path so connections using
+different identities are never multiplexed through the same socket. The
+`~/.ssh/cm` directory must exist and SSH multiplexing must be enabled, for
+example with `ControlMaster auto` and `ControlPersist` in `~/.ssh/config`.

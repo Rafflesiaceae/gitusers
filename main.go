@@ -63,6 +63,47 @@ type UserStatus struct {
 
 var gitusersCfgPath string
 
+// sshCommandForUser keeps multiplexing sockets separate for every configured identity.
+func sshCommandForUser(user *User) string {
+	command := "ssh"
+	if user.PrivKey != "" {
+		command += fmt.Sprintf(` -i %s -o IdentitiesOnly=yes`, user.PrivKey)
+	}
+
+	return command + fmt.Sprintf(` -o ControlPath="$HOME/.ssh/cm/%s-%%C"`, user.Short)
+}
+
+// decodeGitConfigValue restores characters escaped by Git when it writes config values.
+func decodeGitConfigValue(value string) (string, error) {
+	var decoded strings.Builder
+	for i := 0; i < len(value); i++ {
+		if value[i] != '\\' {
+			decoded.WriteByte(value[i])
+			continue
+		}
+
+		i++
+		if i == len(value) {
+			return "", fmt.Errorf("unterminated escape in git config value %q", value)
+		}
+
+		switch value[i] {
+		case 'n':
+			decoded.WriteByte('\n')
+		case 't':
+			decoded.WriteByte('\t')
+		case 'b':
+			decoded.WriteByte('\b')
+		case '\\', '"':
+			decoded.WriteByte(value[i])
+		default:
+			return "", fmt.Errorf("unsupported escape \\%c in git config value %q", value[i], value)
+		}
+	}
+
+	return decoded.String(), nil
+}
+
 func getDefinedGitUsers(path string) (resultPtr *Users, err error) {
 	var result Users
 	gitusersCfgPath = path
@@ -122,7 +163,10 @@ func getGitConfig(fpath string) (result *GitConfig, err error) {
 					return nil, err
 				}
 
-				sshCommand = rhs
+				sshCommand, err = decodeGitConfigValue(rhs)
+				if err != nil {
+					return nil, err
+				}
 				continue
 			}
 
@@ -257,14 +301,6 @@ func main() {
 		}
 	}
 
-	expectedSshCommand := func(user *User) string {
-		if user.PrivKey != "" {
-			return fmt.Sprintf(`ssh -i %s -o IdentitiesOnly=yes`, user.PrivKey)
-		} else {
-			return fmt.Sprintf(`ssh`)
-		}
-	}
-
 	queryUserStatus := func() UserStatus {
 		err := assertGitDir()
 		if err != nil {
@@ -279,7 +315,7 @@ func main() {
 		for _, defUser := range *definedUsers {
 			if cfg.Name == defUser.Name &&
 				cfg.Email == defUser.Email &&
-				cfg.SshCommand == expectedSshCommand(&defUser) {
+				cfg.SshCommand == sshCommandForUser(&defUser) {
 				return UserStatus{status: UserStatusFound, name: defUser.Short, short: defUser.Short}
 			}
 		}
@@ -339,7 +375,7 @@ func main() {
 						panic(serr)
 					}
 
-					ret, _, serr = runEnv("git", []string{"config", "core.sshCommand", expectedSshCommand(&defUser)}, []string{})
+					ret, _, serr = runEnv("git", []string{"config", "core.sshCommand", sshCommandForUser(&defUser)}, []string{})
 					if ret != 0 {
 						panic(serr)
 					}
