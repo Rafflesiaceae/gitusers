@@ -400,7 +400,8 @@ Options:
   -e      Open 'gitusers.json' config in your $EDITOR
   -l      List all known Users (w. user-short)
   -g      Return current user
-  -p      Print the zsh RPROMPT`)
+  -p      Print the zsh RPROMPT
+  -sshc <user-short>  Print the sshCommand that would be set for a user`)
 			os.Exit(0)
 		} else if len(args) == 1 && args[0] == "-l" { // list
 			err := assertGitDir()
@@ -515,6 +516,19 @@ Options:
 			}
 
 			log.Fatalf("could not find a defined user matching %s, defined users: %v", user, definedUsers)
+		} else if len(args) == 2 && args[0] == "-sshc" { // print sshCommand for a user-short without touching git config
+			userShort := args[1]
+			for _, defUser := range *definedUsers {
+				if defUser.Short == userShort ||
+					defUser.Name == userShort ||
+					defUser.Email == userShort {
+
+					fmt.Println(sshCommandForUser(&defUser))
+					os.Exit(0)
+				}
+			}
+
+			log.Fatalf("could not find a defined user matching '%s'", userShort)
 		} else {
 			panic("unsupported argument")
 		}

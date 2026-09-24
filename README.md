@@ -23,6 +23,8 @@ calling `gitusers -l` will list all known users in your `~/.config/gitusers.json
 
 calling `gitusers <user-short> clone <url>` will clone an upstream URL with the given user config
 
+calling `gitusers -sshc <user-short>` will print the `sshCommand` that would be set for the given user, without touching the git config
+
 # Design
 the first idea was to use `gitusers` to change all remote urls according to a schema
 for each specific user in `~/.ssh/config`, e.g. for github we would make another
