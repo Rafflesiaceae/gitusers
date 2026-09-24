@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -48,6 +49,87 @@ func TestSSHCommandForUser(t *testing.T) {
 				t.Fatalf("expected %q, got %q", test.expected, actual)
 			}
 		})
+	}
+}
+
+func TestUpgradePathMatchesLegacySshCommand(t *testing.T) {
+	tests := []struct {
+		name    string
+		user    User
+		cfg     GitConfig
+		matches bool
+	}{
+		{
+			name:    "legacy with private key matches",
+			user:    User{Short: "work", PrivKey: "~/.ssh/work"},
+			cfg:     GitConfig{SshCommand: `ssh -i ~/.ssh/work -o IdentitiesOnly=yes`},
+			matches: true,
+		},
+		{
+			name:    "legacy without private key matches",
+			user:    User{Short: "personal"},
+			cfg:     GitConfig{SshCommand: "ssh"},
+			matches: true,
+		},
+		{
+			name:    "already-current value does not match",
+			user:    User{Short: "work", PrivKey: "~/.ssh/work"},
+			cfg:     GitConfig{SshCommand: sshCommandForUser(&User{Short: "work", PrivKey: "~/.ssh/work"})},
+			matches: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual := upgradePaths[0].matches(&test.cfg, &test.user)
+			if actual != test.matches {
+				t.Fatalf("expected matches=%v, got %v", test.matches, actual)
+			}
+		})
+	}
+}
+
+func TestTryUpgradeGitConfigRewritesLegacySshCommand(t *testing.T) {
+	repoDir := temporaryDirectory(t)
+
+	if _, _, errStr := run("git", "-C", repoDir, "init"); errStr != "" {
+		t.Fatalf("git init failed: %s", errStr)
+	}
+
+	user := User{Short: "work", PrivKey: "~/.ssh/work"}
+	legacySshCommand := `ssh -i ~/.ssh/work -o IdentitiesOnly=yes`
+
+	if _, _, errStr := run("git", "-C", repoDir, "config", "core.sshCommand", legacySshCommand); errStr != "" {
+		t.Fatalf("git config failed: %s", errStr)
+	}
+
+	originalWd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(repoDir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(originalWd); err != nil {
+			t.Error(err)
+		}
+	})
+
+	cfg := &GitConfig{Source: "LOCAL", SshCommand: legacySshCommand}
+
+	if upgraded := tryUpgradeGitConfig(cfg, &user); !upgraded {
+		t.Fatal("expected tryUpgradeGitConfig to report a successful upgrade")
+	}
+
+	expected := sshCommandForUser(&user)
+	if cfg.SshCommand != expected {
+		t.Fatalf("expected cfg.SshCommand to be updated to %q, got %q", expected, cfg.SshCommand)
+	}
+
+	onDisk, _ := runCheck("git", "config", "core.sshCommand")
+	if strings.TrimSpace(onDisk) != expected {
+		t.Fatalf("expected on-disk core.sshCommand to be %q, got %q", expected, strings.TrimSpace(onDisk))
 	}
 }
 

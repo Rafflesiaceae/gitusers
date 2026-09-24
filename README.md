@@ -25,6 +25,8 @@ calling `gitusers <user-short> clone <url>` will clone an upstream URL with the 
 
 calling `gitusers -sshc <user-short>` will print the `sshCommand` that would be set for the given user, without touching the git config
 
+if a repository's local/global git config was set up by an older version of `gitusers` and no longer matches what the current version would generate (e.g. an older `sshCommand` missing the multiplexing `ControlPath`), any status check (`-p`, `-c`, `-g`, or the argless summary) will silently rewrite the config to the current expected value, as long as the outdated shape is a known upgrade path
+
 # Design
 the first idea was to use `gitusers` to change all remote urls according to a schema
 for each specific user in `~/.ssh/config`, e.g. for github we would make another

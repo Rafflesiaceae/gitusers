@@ -73,6 +73,88 @@ func sshCommandForUser(user *User) string {
 	return command + fmt.Sprintf(` -o ControlPath="$HOME/.ssh/cm/%s-%%C"`, user.Short)
 }
 
+// upgradePath describes one known-outdated shape a repository's local/global
+// git config can be in for an otherwise-matching defined user (matched by
+// name+email), together with how to silently fix it up. Whenever we change
+// how a generated config value (like sshCommandForUser's output) looks,
+// append a new entry here instead of leaving previously-configured
+// repositories reported as an unknown user forever.
+type upgradePath struct {
+	// name is only used for diagnostics if an upgrade fails to apply.
+	name string
+	// matches reports whether cfg is the outdated shape this path fixes for defUser.
+	matches func(cfg *GitConfig, defUser *User) bool
+	// apply rewrites the on-disk git config (respecting cfg.Source) to the
+	// current expected shape for defUser, and updates cfg in place so the
+	// caller can keep using it without re-reading the config file.
+	apply func(cfg *GitConfig, defUser *User) error
+}
+
+// upgradePaths lists every known-outdated shape gitusers has ever produced
+// for a generated config value. New entries should be appended, never
+// removed, as long as we want to keep auto-upgrading older setups.
+var upgradePaths = []upgradePath{
+	{
+		// prior to commit 9c229d1 ("Add per-user SSH multiplexing paths"),
+		// sshCommandForUser did not include a ControlPath, so it never kept
+		// multiplexed connections for different identities apart.
+		name: "add per-user SSH multiplexing ControlPath to core.sshCommand",
+		matches: func(cfg *GitConfig, defUser *User) bool {
+			legacy := "ssh"
+			if defUser.PrivKey != "" {
+				legacy = fmt.Sprintf(`ssh -i %s -o IdentitiesOnly=yes`, defUser.PrivKey)
+			}
+			return cfg.SshCommand == legacy
+		},
+		apply: func(cfg *GitConfig, defUser *User) error {
+			return setGitConfigValue(cfg, "core.sshCommand", sshCommandForUser(defUser))
+		},
+	},
+}
+
+// setGitConfigValue writes key=value to whichever git config file cfg was
+// loaded from (local vs. global, per cfg.Source), then mirrors the change
+// into cfg itself so callers see the up-to-date value immediately.
+func setGitConfigValue(cfg *GitConfig, key, value string) error {
+	args := []string{"config"}
+	if cfg.Source == "GLOBAL" {
+		args = append(args, "--global")
+	}
+	args = append(args, key, value)
+
+	ret, _, serr := runEnv("git", args, []string{})
+	if ret != 0 {
+		return fmt.Errorf("failed to write git config %s: %s", key, serr)
+	}
+
+	// keep cfg in sync for the values gitusers actually inspects
+	if key == "core.sshCommand" {
+		cfg.SshCommand = value
+	}
+
+	return nil
+}
+
+// tryUpgradeGitConfig looks for a known upgrade path that turns cfg's
+// currently-outdated state into a match for defUser, applies it if found,
+// and reports whether defUser is now (or already was) a match for cfg.
+func tryUpgradeGitConfig(cfg *GitConfig, defUser *User) bool {
+	for _, up := range upgradePaths {
+		if !up.matches(cfg, defUser) {
+			continue
+		}
+
+		if err := up.apply(cfg, defUser); err != nil {
+			log.Printf("gitusers: auto-upgrade %q failed: %v", up.name, err)
+			return false
+		}
+
+		return true
+	}
+
+	return false
+}
+
 // decodeGitConfigValue restores characters escaped by Git when it writes config values.
 func decodeGitConfigValue(value string) (string, error) {
 	var decoded strings.Builder
@@ -313,11 +395,19 @@ func main() {
 
 		// check if we know the current user
 		for _, defUser := range *definedUsers {
-			if cfg.Name == defUser.Name &&
-				cfg.Email == defUser.Email &&
-				cfg.SshCommand == sshCommandForUser(&defUser) {
-				return UserStatus{status: UserStatusFound, name: defUser.Short, short: defUser.Short}
+			if cfg.Name != defUser.Name || cfg.Email != defUser.Email {
+				continue
 			}
+
+			// name/email match a defined user, but a generated value (e.g.
+			// sshCommand) might still be stale from an older gitusers
+			// version; try to silently auto-upgrade it before giving up on
+			// this defUser as a match.
+			if cfg.SshCommand != sshCommandForUser(&defUser) && !tryUpgradeGitConfig(cfg, &defUser) {
+				continue
+			}
+
+			return UserStatus{status: UserStatusFound, name: defUser.Short, short: defUser.Short}
 		}
 
 		// so we don't know the current user
