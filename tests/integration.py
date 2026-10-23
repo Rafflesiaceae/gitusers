@@ -20,7 +20,7 @@ MAGENTA = "%{$fg[magenta]%}"
 
 class Integration(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="gitcusers-test-")
+        self.temp = tempfile.TemporaryDirectory(prefix="gitusers-test-")
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.home = self.root / "home"

@@ -1,4 +1,4 @@
-# gitcusers
+# gitusers
 
 A C implementation of [gitusers](https://github.com/Rafflesiaceae/gitusers), built with Meson, cJSON, and musl. It selects repository identities and prints the same zsh prompt format as the Go program.
 
@@ -10,7 +10,7 @@ Requires Meson 1.1 or newer, Ninja, and `musl-gcc`. Git is needed at runtime for
 meson setup build --native-file musl.ini
 meson compile -C build
 meson test -C build --print-errorlogs
-./build/gitcusers -h
+./build/gitusers -h
 ```
 
 The musl configuration produces a fully static executable, with release optimization, link-time optimization, and removal of unused functions. cJSON 1.7.19 is vendored and compiled with musl, so building needs neither network access nor a system cJSON installation. Third-party licensing is in `vendor/cjson/LICENSE`.
@@ -52,16 +52,16 @@ Uses the existing `~/.config/gitusers.json` file:
 
 | Command | Result |
 | --- | --- |
-| `gitcusers` | List identities, marking the current match with an arrow |
-| `gitcusers work` | Set the current repository's name, email, and SSH command |
-| `gitcusers -l` | List all user records |
-| `gitcusers -g` | Print the matching short name and a newline; exit 1 for no match |
-| `gitcusers -c` | Print the short name, or the unknown name / `NONE` with zsh red markup |
-| `gitcusers -p` | Print the zsh right prompt without a trailing newline |
-| `gitcusers -sshc work` | Print the SSH command without writing Git configuration |
-| `gitcusers -e` | Open the JSON file in `$EDITOR`, defaulting to `vi` |
-| `gitcusers work clone <url> [options...]` | Clone using the selected identity for SSH authentication |
-| `gitcusers -h` | Show help |
+| `gitusers` | List identities, marking the current match with an arrow |
+| `gitusers work` | Set the current repository's name, email, and SSH command |
+| `gitusers -l` | List all user records |
+| `gitusers -g` | Print the matching short name and a newline; exit 1 for no match |
+| `gitusers -c` | Print the short name, or the unknown name / `NONE` with zsh red markup |
+| `gitusers -p` | Print the zsh right prompt without a trailing newline |
+| `gitusers -sshc work` | Print the SSH command without writing Git configuration |
+| `gitusers -e` | Open the JSON file in `$EDITOR`, defaulting to `vi` |
+| `gitusers work clone <url> [options...]` | Clone using the selected identity for SSH authentication |
+| `gitusers -h` | Show help |
 
 For example, a work identity generates:
 
@@ -75,7 +75,7 @@ Like gitusers, identity detection prefers a repository identity and falls back t
 
 The prompt includes the identity, branch or abbreviated detached commit, repository nesting depth, ahead/behind counts, today's stashes, tracked worktree changes, and a staged marker. Untracked files do not contribute to the displayed counts. Submodule gitfiles and linked worktrees are supported, including worktree-specific identity settings.
 
-Help, listing, editing, SSH command printing, and cloning work outside a repository. Outside-repository `-p` and `-c` produce no output, and `-g` exits 1. `$EDITOR` is an executable name or path, following the original program's convention. Clone authentication uses `GIT_SSH_COMMAND` directly and needs no `ssh-i-from-env` wrapper. Cloning does not configure the resulting repository's identity; run `gitcusers work` there to do that.
+Help, listing, editing, SSH command printing, and cloning work outside a repository. Outside-repository `-p` and `-c` produce no output, and `-g` exits 1. `$EDITOR` is an executable name or path, following the original program's convention. Clone authentication uses `GIT_SSH_COMMAND` directly and needs no `ssh-i-from-env` wrapper. Cloning does not configure the resulting repository's identity; run `gitusers work` there to do that.
 
 ## Performance
 

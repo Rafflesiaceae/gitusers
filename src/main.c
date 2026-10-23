@@ -1,4 +1,4 @@
-#include "gitcusers.h"
+#include "gitusers.h"
 #include <errno.h>
 #include <pwd.h>
 #include <stdio.h>
@@ -9,8 +9,8 @@
 static void usage(void)
 {
     puts("Usage:\n"
-         "  gitcusers [<user-short>|<name>|<email>]\n"
-         "  gitcusers <user> clone <url> [git-clone-options...]\n\n"
+         "  gitusers [<user-short>|<name>|<email>]\n"
+         "  gitusers <user> clone <url> [git-clone-options...]\n\n"
          "Options:\n"
          "  -h             Show this help\n"
          "  -c             Check current user (zsh colors for unknown users)\n"
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
     bool clone = argc >= 4 && !strcmp(argv[2], "clone");
     bool set = argc == 2 && option[0] != '-';
     if (!(summary || check || get || prompt || list || edit || ssh || clone || set)) {
-        fputs("gitcusers: unsupported arguments; use -h for help\n", stderr);
+        fputs("gitusers: unsupported arguments; use -h for help\n", stderr);
         return 2;
     }
     Repo repo = {0};

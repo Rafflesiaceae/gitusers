@@ -1,5 +1,5 @@
-#ifndef GITCUSERS_H
-#define GITCUSERS_H
+#ifndef GITUSERS_H
+#define GITUSERS_H
 
 #define _POSIX_C_SOURCE 200809L
 #define _XOPEN_SOURCE 700

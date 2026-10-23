@@ -1,4 +1,4 @@
-#include "gitcusers.h"
+#include "gitusers.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <spawn.h>
@@ -14,7 +14,7 @@ extern char **environ;
 _Noreturn void die(const char *fmt, ...)
 {
     va_list args;
-    fputs("gitcusers: ", stderr);
+    fputs("gitusers: ", stderr);
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
     va_end(args);
@@ -120,7 +120,7 @@ int run(char *const argv[], char **output)
     if (output) close(pipefd[1]);
     if (error) {
         if (output) { close(pipefd[0]); *output = xstrdup(""); }
-        fprintf(stderr, "gitcusers: %s: %s\n", argv[0], strerror(error));
+        fprintf(stderr, "gitusers: %s: %s\n", argv[0], strerror(error));
         return 127;
     }
     if (output) {
