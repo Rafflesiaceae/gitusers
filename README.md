@@ -38,6 +38,7 @@ Uses the existing `~/.config/gitusers.json` file:
 | --- | --- |
 | `gitusers` | List identities, marking the current match with an arrow |
 | `gitusers work` | Set the current repository's name, email, and SSH command |
+| `gitusers --reset` | Remove the current repository's name, email, and SSH command |
 | `gitusers -l` | List all user records |
 | `gitusers -g` | Print the matching short name and a newline; exit 1 for no match |
 | `gitusers -c` | Print the short name, or the unknown name / `NONE` with zsh red markup |
@@ -54,6 +55,8 @@ ssh -i ~/.ssh/work -o IdentitiesOnly=yes -o ControlPath="$HOME/.ssh/cm/work-%C"
 ```
 
 The short name keeps each identity's multiplexing socket separate. For SSH multiplexing, create `~/.ssh/cm` and configure `ControlMaster` and `ControlPersist` in your SSH configuration. An empty private key omits `-i` and `IdentitiesOnly`, retaining the per-identity control path. Paths containing shell metacharacters are quoted.
+
+`--reset` unsets all `user.name`, `user.email`, and `core.sshCommand` entries in the local repository configuration and the current worktree configuration. Global settings, included configuration files, and other worktrees' overrides remain unchanged. It does not restore values overwritten by an earlier identity selection. Reset works without `~/.config/gitusers.json` and succeeds if the entries are already absent.
 
 Like gitusers, identity detection prefers a repository identity and falls back to `~/.gitconfig` if no repository identity is set. Name, email, and SSH command must match a defined user. Status commands silently upgrade an exact legacy SSH command missing the control path, writing to the local, worktree, or global scope it came from. Custom commands are left alone. Git includes and conditional includes are supported through a Git subprocess fallback.
 

@@ -18,6 +18,7 @@ static void usage(void)
          "  -l             List known users\n"
          "  -g             Print current known user; exit 1 if none matches\n"
          "  -p             Print the zsh RPROMPT\n"
+         "  --reset        Remove this repository's identity and SSH command\n"
          "  -sshc <user>   Print the user's SSH command");
 }
 
@@ -41,18 +42,25 @@ int main(int argc, char **argv)
     bool prompt = argc == 2 && !strcmp(option, "-p");
     bool list = argc == 2 && !strcmp(option, "-l");
     bool edit = argc == 2 && !strcmp(option, "-e");
+    bool reset = argc == 2 && !strcmp(option, "--reset");
     bool ssh = argc == 3 && !strcmp(option, "-sshc");
     bool clone = argc >= 4 && !strcmp(argv[2], "clone");
     bool set = argc == 2 && option[0] != '-';
-    if (!(summary || check || get || prompt || list || edit || ssh || clone || set)) {
+    if (!(summary || check || get || prompt || list || edit || reset || ssh || clone || set)) {
         fputs("gitusers: unsupported arguments; use -h for help\n", stderr);
         return 2;
     }
     Repo repo = {0};
-    if (summary || check || get || prompt || set) repo = find_repo();
+    if (summary || check || get || prompt || set || reset) repo = find_repo();
     /* The outside-repository prompt is intentionally silent and needs no JSON. */
     if (!repo.gitdir && (prompt || check || get)) { free_repo(&repo); return get ? 1 : 0; }
-    if (set && !repo.gitdir) die("could not find a Git repository");
+    if ((set || reset) && !repo.gitdir) die("could not find a Git repository");
+    /* Reset must also work after the identities file has been removed. */
+    if (reset) {
+        reset_user();
+        free_repo(&repo);
+        return 0;
+    }
     char *home = home_directory();
     char *path = join(home, ".config/gitusers.json");
     if (edit) {

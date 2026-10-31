@@ -376,3 +376,20 @@ void set_user(const User *user)
     }
     free(ssh);
 }
+
+void reset_user(void)
+{
+    char *scopes[] = {"--local", "--worktree"};
+    char *keys[] = {"user.name", "user.email", "core.sshCommand"};
+    /* Clear shared repository settings and current worktree overrides, leaving
+     * global configuration and other worktrees' overrides untouched. Without
+     * worktreeConfig, --worktree repeats the local cleanup harmlessly. */
+    for (size_t i = 0; i < 2; ++i) {
+        for (size_t j = 0; j < 3; ++j) {
+            char *args[] = {"git", "config", scopes[i], "--unset-all", keys[j], NULL};
+            int result = run(args, NULL);
+            /* Git returns 5 when the key is absent, so reset is idempotent. */
+            if (result != 0 && result != 5) die("failed to reset %s (%s)", keys[j], scopes[i]);
+        }
+    }
+}

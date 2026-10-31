@@ -50,6 +50,7 @@ Config load_config(const Repo *repo, const char *home);
 void free_config(Config *config);
 Identity identify(const Repo *repo, Config *config, const Users *users);
 void set_user(const User *user);
+void reset_user(void);
 void print_prompt(const Repo *repo, Identity identity);
 
 #endif
